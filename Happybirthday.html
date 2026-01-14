@@ -1,0 +1,1861 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Happy Birthday Matrix</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap"
+        rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #000;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Reverting to Responsive Viewport Design */
+        #stage {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            display: none;
+            /* Controlled by JS */
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .dots-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 95vw;
+            height: 90vh;
+            max-width: 1600px;
+            max-height: 900px;
+            z-index: 100;
+        }
+
+        .black-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, #000011, #000033);
+            z-index: 200;
+            opacity: 0;
+            transition: opacity 2s ease-in-out;
+        }
+
+        .black-screen.show {
+            opacity: 1;
+        }
+
+        .stars-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 201;
+        }
+
+        #layout-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 95%;
+            height: 90%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            z-index: 202;
+            /* Stacked Layout: Sticker Top, Book Bottom */
+            flex-direction: column;
+            height: auto;
+            /* Shrink to fit */
+        }
+
+        .sticker {
+            position: relative;
+            /* Layout handled by flex parent */
+            top: auto;
+            left: auto;
+            transform: none;
+            font-size: clamp(10px, 1.5vw, 16px);
+            font-weight: bold;
+            color: #ff69b4;
+            text-shadow: 0 0 10px #ff00ff, 0 0 20px #ff00ff;
+            z-index: 202;
+            text-align: center;
+            font-family: 'Amiri', serif;
+            background: rgba(255, 255, 255, 0.15);
+            padding: 8px 15px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 105, 180, 0.3);
+            display: none;
+            direction: rtl;
+            white-space: normal;
+
+            /* Horizontal and Small */
+            flex: 0 0 auto;
+            width: clamp(300px, 50vw, 600px);
+            max-width: 80%;
+
+            line-height: 1.4;
+        }
+
+        .sticker.long-text {
+            font-size: clamp(10px, 1.2vw, 14px);
+            line-height: 1.4;
+        }
+
+        .sticker.extra-long-text {
+            font-size: clamp(9px, 1vw, 12px);
+            line-height: 1.3;
+        }
+
+        /* Book styles */
+        .book-container {
+            position: relative;
+            /* Layout handled by flex parent */
+            top: auto;
+            left: auto;
+            transform: none;
+
+            /* Very Small Size */
+            flex: 0 0 auto;
+            width: clamp(180px, 20vw, 250px);
+            min-width: 0;
+            /* Reset */
+            max-width: none;
+            /* Reset */
+
+            /* Position to the left */
+            align-self: flex-start;
+            margin-left: 5%;
+
+            height: clamp(126px, 14vw, 175px);
+            z-index: 203;
+            display: none;
+            perspective: 2500px;
+            transform-origin: bottom center;
+        }
+
+        .book-container.show {
+            display: block;
+            animation: slideInRight 1.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        }
+
+        @keyframes slideInRight {
+            0% {
+                left: 150%;
+                opacity: 0;
+                transform: translateX(0) rotateY(-30deg);
+            }
+
+            100% {
+                left: 50%;
+                opacity: 1;
+                transform: translateX(-50%) rotateY(0);
+            }
+        }
+
+        .book {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 1s ease;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .book-page {
+            position: absolute;
+            width: 50%;
+            height: 100%;
+            background: #fdfaf7;
+            background-image: linear-gradient(to right, rgba(240, 240, 240, 0.8) 0%, rgba(255, 255, 255, 0) 20%, rgba(255, 255, 255, 0) 80%, rgba(240, 240, 240, 0.8) 100%);
+            border: 1px solid #e0d0c0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backface-visibility: visible;
+            transition: transform 0.9s cubic-bezier(0.645, 0.045, 0.355, 1);
+            cursor: pointer;
+            overflow: hidden;
+            transform-origin: center;
+        }
+
+        .book-page.left {
+            left: 0;
+            transform-origin: right center;
+            border-radius: 5px 0 0 5px;
+            box-shadow: inset 20px 0 50px rgba(0, 0, 0, 0.05);
+        }
+
+        .book-page.right {
+            right: 0;
+            transform-origin: left center;
+            border-radius: 0 5px 5px 0;
+            box-shadow: inset -20px 0 50px rgba(0, 0, 0, 0.05);
+        }
+
+        .book-page.flipped {
+            transform: rotateY(-180deg);
+            box-shadow: 10px 0 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .book-page.flipped .book-page-content.has-image {
+            transform: rotateY(180deg);
+        }
+
+        .book.closed .book-page.right {
+            transform: rotateY(-180deg);
+        }
+
+        .book-page-content {
+            padding: clamp(20px, 3vw, 40px);
+            text-align: center;
+            font-size: clamp(18px, 2.5vw, 26px);
+            color: #5d4037;
+            font-family: 'Playfair Display', serif;
+            font-style: italic;
+            width: 100%;
+            height: 100%;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            line-height: 1.4;
+        }
+
+        .book-page-content.has-image {
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .book-cover {
+            font-size: clamp(22px, 3vw, 34px);
+            font-weight: 700;
+            background: linear-gradient(45deg, #8b4513, #5d4037);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 1px 1px 0 rgba(255, 255, 255, 0.5);
+            transform: rotateY(180deg) !important;
+            direction: ltr !important;
+            unicode-bidi: plaintext !important;
+            border-bottom: 2px solid #e0d0c0;
+            padding-bottom: 15px;
+        }
+
+        .book-page-image {
+            width: 90%;
+            height: 90%;
+            object-fit: cover;
+            border: clamp(4px, 0.8vw, 10px) solid #fff;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            display: block;
+        }
+
+        .book-page-image:hover {
+            transform: scale(1.02);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .book-spine {
+            position: absolute;
+            left: 50%;
+            top: 0;
+            transform: translateX(-50%);
+            width: clamp(20px, 3vw, 35px);
+            height: 100%;
+            background: linear-gradient(90deg, #5d3a22 0%, #8b5a3b 40%, #5d3a22 60%, #4a2c1a 100%);
+            z-index: 10;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            border-radius: 3px;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translate(-50%, -50%) translateY(0px);
+            }
+
+            50% {
+                transform: translate(-50%, -50%) translateY(-20px);
+            }
+        }
+
+        .music-btn {
+            position: absolute;
+            bottom: clamp(20px, 3vh, 40px);
+            right: clamp(20px, 3vw, 40px);
+            z-index: 300;
+            background: rgba(255, 105, 180, 0.8);
+            color: white;
+            border: none;
+            padding: clamp(12px, 1.5vw, 18px) clamp(20px, 2.5vw, 30px);
+            border-radius: 50px;
+            font-size: clamp(14px, 1.8vw, 18px);
+            font-weight: bold;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            box-shadow: 0 0 20px rgba(255, 105, 180, 0.5);
+            transform-origin: bottom right;
+        }
+
+        .music-btn:hover {
+            background: rgba(255, 20, 147, 0.9);
+            transform: scale(1.1);
+            box-shadow: 0 0 30px rgba(255, 20, 147, 0.7);
+        }
+
+        .music-btn.playing {
+            background: rgba(50, 205, 50, 0.8);
+            box-shadow: 0 0 20px rgba(50, 205, 50, 0.5);
+        }
+
+        .music-btn.playing:hover {
+            background: rgba(34, 139, 34, 0.9);
+            box-shadow: 0 0 30px rgba(34, 139, 34, 0.7);
+        }
+
+        .star {
+            position: absolute;
+            background-color: white;
+            border-radius: 50%;
+            animation: twinkle 3s infinite ease-in-out;
+        }
+
+        .shooting-star {
+            position: absolute;
+            width: 80px;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, white);
+            transform: rotate(-45deg);
+            animation: shoot 4s infinite ease-in;
+            opacity: 0;
+        }
+
+        @keyframes twinkle {
+
+            0%,
+            100% {
+                opacity: 0.3;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 1;
+                transform: scale(1.2);
+            }
+        }
+
+        @keyframes shoot {
+            0% {
+                transform: translateX(-100px) translateY(-100px) rotate(-45deg);
+                opacity: 0;
+            }
+
+            10% {
+                opacity: 1;
+            }
+
+            20% {
+                transform: translateX(200px) translateY(200px) rotate(-45deg);
+                opacity: 0;
+            }
+
+            100% {
+                opacity: 0;
+            }
+        }
+
+        .dot {
+            position: absolute;
+            width: clamp(8px, 1.5vw, 14px);
+            height: clamp(8px, 1.5vw, 14px);
+            background: linear-gradient(45deg, #ff00ff, #ff69b4);
+            border-radius: 50%;
+            opacity: 0;
+            box-shadow:
+                0 0 15px #ff00ff,
+                0 0 30px #ff00ff,
+                0 0 45px #ff1493,
+                0 0 60px rgba(255, 20, 147, 0.5);
+            left: 50%;
+            top: 50%;
+            filter: brightness(1.2) contrast(1.3);
+        }
+
+        @keyframes assemble {
+            0% {
+                opacity: 0;
+                transform: translate(var(--start-x), var(--start-y)) scale(0);
+            }
+
+            70% {
+                opacity: 1;
+                transform: translate(var(--final-x), var(--final-y)) scale(1.4);
+            }
+
+            100% {
+                opacity: 1;
+                transform: translate(var(--final-x), var(--final-y)) scale(1);
+            }
+        }
+
+        @keyframes disassemble {
+            0% {
+                opacity: 1;
+                transform: translate(var(--final-x), var(--final-y)) scale(1);
+            }
+
+            100% {
+                opacity: 0;
+                transform: translate(var(--end-x), var(--end-y)) scale(0);
+            }
+        }
+
+        /* Initial screens */
+        .initial-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 400;
+            background-color: #000;
+            color: #ff69b4;
+            font-family: 'Arial', sans-serif;
+            text-align: center;
+        }
+
+        .jessy-day {
+            font-size: clamp(40px, 8vw, 80px);
+            font-weight: bold;
+            text-shadow:
+                0 0 20px #ff00ff,
+                0 0 40px #ff00ff,
+                0 0 60px #ff1493,
+                0 0 80px #ff1493;
+            animation: pulse 2s infinite;
+            padding: 5vmin;
+            border-radius: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 105, 180, 0.3);
+        }
+
+        /* Rotation Screen - Mandatory Style */
+        #rotateOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(45deg, #000, #111);
+            z-index: 99999;
+            display: none;
+            /* Hidden by default */
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #ff69b4;
+            text-align: center;
+        }
+
+        #rotateOverlay .content {
+            padding: 40px;
+            border-radius: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #ff69b4;
+            box-shadow: 0 0 30px rgba(255, 105, 180, 0.3);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .rotate-icon {
+            font-size: 80px;
+            animation: rotatePhone 2.5s infinite ease-in-out;
+        }
+
+        .rotate-text {
+            font-size: 24px;
+            font-weight: bold;
+            font-family: 'Arial', sans-serif;
+            margin-top: 10px;
+        }
+
+        @keyframes rotatePhone {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            40% {
+                transform: rotate(90deg);
+            }
+
+            80% {
+                transform: rotate(90deg);
+            }
+
+            100% {
+                transform: rotate(0deg);
+            }
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+
+            50% {
+                transform: scale(1.05);
+                opacity: 0.8;
+            }
+        }
+
+        /* Import Bitcount Prop Single Ink font */
+        @font-face {
+            font-family: 'Bitcount Prop Single Ink';
+            src: url('https://fonts.cdnfonts.com/s/95514/BitcountPropSingle-Regular.woff') format('woff');
+            font-weight: normal;
+            font-style: normal;
+        }
+
+
+        /* Hide elements initially */
+        .dots-container,
+        .black-screen,
+        .music-btn {
+            display: none;
+        }
+
+        /* Show matrix canvas from the start */
+        canvas {
+            display: block;
+        }
+
+        /* Show Jessy Day screen initially */
+        #jessyDayScreen {
+            display: flex;
+        }
+
+        /* ORIENTATION ENFORCEMENT RULES via CSS */
+        /* If screen is portrait (height > width), show the overlay */
+        @media screen and (orientation: portrait) {
+            #rotateOverlay {
+                display: flex !important;
+            }
+
+            /* Hide everything else to prevent interaction */
+            #jessyDayScreen,
+            .dots-container,
+            .black-screen,
+            .music-btn,
+            #matrix {
+                visibility: hidden;
+            }
+        }
+
+        @media screen and (max-width: 1024px) {
+            /* Handled by main CSS now */
+        }
+
+        @media screen and (max-width: 768px) {
+            /* Handled by main CSS now */
+        }
+
+        /* Touch-friendly improvements for mobile */
+        @media (hover: none) and (pointer: coarse) {
+            .book-page {
+                cursor: default;
+                -webkit-tap-highlight-color: rgba(255, 105, 180, 0.3);
+            }
+
+            .music-btn {
+                -webkit-tap-highlight-color: rgba(255, 105, 180, 0.3);
+                min-height: 44px;
+                min-width: 120px;
+            }
+
+            .music-btn:active {
+                transform: scale(0.95);
+            }
+
+            .book-page:active {
+                transform: scale(0.98);
+            }
+        }
+
+        /* Prevent text selection on mobile for better UX */
+        @media (max-width: 768px) {
+
+            .book-page,
+            .sticker,
+            .music-btn {
+                -webkit-user-select: none;
+                -moz-user-select: none;
+                -ms-user-select: none;
+                user-select: none;
+                -webkit-touch-callout: none;
+            }
+        }
+
+        /* Improve performance on mobile */
+        @media (max-width: 768px) {
+
+            .star,
+            .dot,
+            canvas {
+                will-change: transform, opacity;
+            }
+        }
+
+        /* Adjust matrix font size for smaller screens */
+        @media screen and (max-width: 768px) and (orientation: landscape) {
+            /* Matrix font size will be handled in JavaScript */
+        }
+
+        /* Fix overflow issues on mobile */
+        @media (max-width: 768px) {
+            body {
+                overflow-x: hidden;
+                overflow-y: hidden;
+            }
+
+            #stage {
+                overflow: hidden;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Initial Screens -->
+    <div class="initial-screen" id="jessyDayScreen">
+        <div class="jessy-day">It's Jessy Day</div>
+    </div>
+
+    <!-- Mandatory Rotation Overlay -->
+    <div id="rotateOverlay">
+        <div class="content">
+            <div class="rotate-icon">📱</div>
+            <div class="rotate-text">Please Rotate Your Device</div>
+            <div style="font-size: 16px; opacity: 0.8; margin-top: 10px;">Best viewed in landscape mode</div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div id="stage">
+        <canvas id="matrix"></canvas>
+        <div class="dots-container" id="dotsContainer"></div>
+        <div class="black-screen" id="blackScreen">
+            <div class="stars-container" id="starsContainer"></div>
+            <div id="layout-container">
+                <div class="sticker" id="sticker"></div>
+                <!-- Book Container -->
+                <div class="book-container" id="bookContainer">
+                    <div class="book">
+                        <div class="book-spine"></div>
+                        <div class="book-page left" id="leftPage">
+                            <div class="book-page-content" id="leftPageContent">
+                                <div class="book-cover">To Jessy</div>
+                            </div>
+                        </div>
+                        <div class="book-page right" id="rightPage">
+                            <div class="book-page-content" id="rightPageContent">
+                                <div class="book-cover">To Jessy</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <button class="music-btn" id="musicBtn">🎵 Play Music</button>
+    </div>
+
+    <!-- Audio element - ADD YOUR MUSIC FILE PATH HERE -->
+    <audio id="birthdayMusic" loop>
+        <source src="mu.mp3" type="audio/mpeg">
+        <!-- Replace empty src with your music file path -->
+        <!-- Example: <source src="happy-birthday.mp3" type="audio/mpeg"> -->
+    </audio>
+
+    <script>
+        const canvas = document.getElementById('matrix');
+        const ctx = canvas.getContext('2d');
+        const stage = document.getElementById('stage'); // Get Stage
+        const dotsContainer = document.getElementById('dotsContainer');
+        const blackScreen = document.getElementById('blackScreen');
+        const starsContainer = document.getElementById('starsContainer');
+        const sticker = document.getElementById('sticker');
+        const musicBtn = document.getElementById('musicBtn');
+        const birthdayMusic = document.getElementById('birthdayMusic');
+        const jessyDayScreen = document.getElementById('jessyDayScreen');
+        const rotateOverlay = document.getElementById('rotateOverlay');
+        const bookContainer = document.getElementById('bookContainer');
+        const book = document.querySelector('.book');
+        const leftPage = document.getElementById('leftPage');
+        const rightPage = document.getElementById('rightPage');
+        const leftPageContent = document.getElementById('leftPageContent');
+        const rightPageContent = document.getElementById('rightPageContent');
+
+        let isMusicPlaying = false;
+        let matrixInterval = null;
+        let bookPageState = -1; // -1: closed, 0-7: current image index (8 images)
+        let isBookOpen = false;
+        let hasStarted = false; // Flag to prevent multiple starts
+
+        // STAGE SCALING LOGIC
+        function scaleStage() {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+
+            // Reference resolution (1280x800)
+            const refW = 1280;
+            const refH = 800;
+
+            // Determine scale to fit
+            const scaleX = width / refW;
+            const scaleY = height / refH;
+
+            // Fit containment (scale to fit the smaller dimension)
+            // 0.95 factor allows a little margin
+            const scale = Math.min(scaleX, scaleY) * 0.95;
+
+            stage.style.transform = `translate(-50%, -50%) scale(${scale})`;
+
+            // Strict orientation check for overlay
+            rotateOverlay.style.display = (width < height) ? 'flex' : 'none';
+        }
+
+        // INITIALIZATION AND STARTUP LOGIC
+        function initApp() {
+            scaleStage();
+            // initMatrix() called at end of script
+            checkOrientationAndStart();
+        }
+
+        function checkOrientationAndStart() {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            const isLandscape = width > height;
+
+            if (isLandscape) {
+                // If landscape, show intro IF not started yet
+                if (!hasStarted) {
+                    hasStarted = true;
+                    // Ensure overlay hidden
+                    rotateOverlay.style.display = 'none';
+                    // Start intro sequence
+                    showJessyDay();
+                } else {
+                    // Already running, just ensure overlay matches
+                    rotateOverlay.style.display = 'none';
+                }
+            } else {
+                // Portrait - show overlay, waiting for rotation
+                rotateOverlay.style.display = 'flex';
+                // Note: We do NOT start the show here. We just wait.
+            }
+        }
+
+        // Show Jessy Day screen first
+        function showJessyDay() {
+            // Show stage (it's hidden by default)
+            stage.style.display = 'block';
+
+            // Ensure it's visible (already visible from CSS, but ensure it)
+            jessyDayScreen.style.display = 'flex';
+            jessyDayScreen.style.opacity = '1';
+
+            setTimeout(() => {
+                jessyDayScreen.style.opacity = '0';
+                jessyDayScreen.style.transition = 'opacity 1s ease-in-out';
+
+                setTimeout(() => {
+                    jessyDayScreen.style.display = 'none';
+                    startMainContent();
+                }, 1000);
+            }, 3000); // Show for 3 seconds
+        }
+
+
+        function startMainContent() {
+            // Show main content
+            dotsContainer.style.display = 'block';
+            blackScreen.style.display = 'block';
+            musicBtn.style.display = 'block';
+            // Canvas is already visible from the start
+
+            // Start the show
+            startCountdown();
+        }
+
+        // Music control
+        musicBtn.addEventListener('click', function () {
+            if (isMusicPlaying) {
+                birthdayMusic.pause();
+                musicBtn.textContent = '🎵 Play Music';
+                musicBtn.classList.remove('playing');
+            } else {
+                birthdayMusic.play().catch(e => {
+                    console.log('Audio play failed:', e);
+                });
+                musicBtn.textContent = '⏸️ Pause Music';
+                musicBtn.classList.add('playing');
+            }
+            isMusicPlaying = !isMusicPlaying;
+        });
+
+        function initMatrix() {
+            // Set canvas size
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            // Matrix characters - using "Happy Birthday" letters
+            const chars = "HAPPYBIRTHDAY";
+            const charArray = chars.split('');
+
+            // Responsive font size based on screen width
+            let fontSize = 25;
+            if (window.innerWidth <= 480) {
+                fontSize = 12;
+            } else if (window.innerWidth <= 768) {
+                fontSize = 16;
+            } else if (window.innerWidth <= 1024) {
+                fontSize = 20;
+            }
+
+            const columns = canvas.width / fontSize;
+
+            // Create an array of drops - one per column
+            const drops = [];
+            for (let i = 0; i < columns; i++) {
+                drops[i] = Math.floor(Math.random() * canvas.height / fontSize);
+            }
+
+            // Draw the matrix rain
+            function draw() {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.04)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Use gradient for matrix text
+                const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+                gradient.addColorStop(0, '#ff00ff');
+                gradient.addColorStop(0.5, '#ff69b4');
+                gradient.addColorStop(1, '#ff1493');
+
+                ctx.fillStyle = gradient;
+                ctx.font = `bold ${fontSize}px 'Bitcount Prop Single Ink', monospace`;
+                ctx.shadowColor = '#ff00ff';
+                ctx.shadowBlur = 10;
+
+                for (let i = 0; i < drops.length; i++) {
+                    const text = charArray[Math.floor(Math.random() * charArray.length)];
+                    ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+                    if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                        drops[i] = 0;
+                    }
+
+                    drops[i]++;
+                }
+
+                ctx.shadowBlur = 0;
+            }
+
+            // Clear existing interval if any
+            if (matrixInterval) {
+                clearInterval(matrixInterval);
+            }
+
+            // Start matrix animation
+            matrixInterval = setInterval(draw, 33);
+        }
+
+        // Create stars function
+        function createStars() {
+            starsContainer.innerHTML = '';
+
+            // Responsive star count based on screen size
+            let starCount = 200;
+            let shootingStarCount = 5;
+            if (window.innerWidth <= 480) {
+                starCount = 80;
+                shootingStarCount = 3;
+            } else if (window.innerWidth <= 768) {
+                starCount = 120;
+                shootingStarCount = 4;
+            } else if (window.innerWidth <= 1024) {
+                starCount = 150;
+                shootingStarCount = 4;
+            }
+
+            // Create normal stars
+            for (let i = 0; i < starCount; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+
+                const size = Math.random() * 3 + 1;
+                star.style.width = `${size}px`;
+                star.style.height = `${size}px`;
+
+                star.style.left = `${Math.random() * 100}%`;
+                star.style.top = `${Math.random() * 100}%`;
+                star.style.animationDelay = `${Math.random() * 5}s`;
+                star.style.opacity = Math.random() * 0.8 + 0.2;
+
+                starsContainer.appendChild(star);
+            }
+
+            // Create shooting stars
+            for (let i = 0; i < shootingStarCount; i++) {
+                const shootingStar = document.createElement('div');
+                shootingStar.className = 'shooting-star';
+
+                shootingStar.style.left = `${Math.random() * 100}%`;
+                shootingStar.style.top = `${Math.random() * 100}%`;
+                shootingStar.style.animationDelay = `${Math.random() * 10}s`;
+
+                starsContainer.appendChild(shootingStar);
+            }
+        }
+
+        // Number patterns
+        const numberPatterns = {
+            3: [
+                [0, 1, 1, 1, 1, 1, 1, 0],
+                [1, 1, 1, 1, 1, 1, 1, 1],
+                [0, 0, 0, 0, 0, 0, 1, 1],
+                [0, 0, 0, 0, 0, 0, 0, 1],
+                [0, 0, 1, 1, 1, 1, 1, 0],
+                [0, 0, 1, 1, 1, 1, 1, 1],
+                [0, 0, 0, 0, 0, 0, 0, 1],
+                [0, 0, 0, 0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 0, 1],
+                [1, 1, 0, 0, 0, 0, 1, 1],
+                [0, 1, 1, 1, 1, 1, 1, 0],
+                [0, 0, 1, 1, 1, 1, 0, 0]
+            ],
+            2: [
+                [0, 0, 1, 1, 1, 1, 0, 0],
+                [0, 1, 1, 1, 1, 1, 1, 0],
+                [1, 1, 0, 0, 0, 0, 1, 1],
+                [0, 0, 0, 0, 0, 0, 0, 1],
+                [0, 0, 0, 0, 0, 0, 1, 1],
+                [0, 0, 0, 0, 0, 1, 1, 0],
+                [0, 0, 0, 0, 1, 1, 0, 0],
+                [0, 0, 0, 1, 1, 0, 0, 0],
+                [0, 0, 1, 1, 0, 0, 0, 0],
+                [0, 1, 1, 0, 0, 0, 0, 0],
+                [1, 1, 1, 1, 1, 1, 1, 1],
+                [1, 1, 1, 1, 1, 1, 1, 1]
+            ],
+            1: [
+                [0, 0, 0, 1, 1, 0, 0, 0],
+                [0, 0, 1, 1, 1, 0, 0, 0],
+                [0, 1, 1, 1, 1, 0, 0, 0],
+                [1, 1, 0, 1, 1, 0, 0, 0],
+                [0, 0, 0, 1, 1, 0, 0, 0],
+                [0, 0, 0, 1, 1, 0, 0, 0],
+                [0, 0, 0, 1, 1, 0, 0, 0],
+                [0, 0, 0, 1, 1, 0, 0, 0],
+                [0, 0, 0, 1, 1, 0, 0, 0],
+                [0, 0, 0, 1, 1, 0, 0, 0],
+                [0, 0, 1, 1, 1, 1, 0, 0],
+                [1, 1, 1, 1, 1, 1, 1, 1]
+            ]
+        };
+
+        // HAPPY letter patterns
+        const happyPatterns = {
+            'H': [
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 1, 1, 1, 1, 1, 1],
+                [1, 1, 1, 1, 1, 1, 1],
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 1]
+            ],
+            'A': [
+                [0, 0, 1, 1, 1, 0, 0],
+                [0, 1, 1, 1, 1, 1, 0],
+                [1, 1, 0, 0, 0, 1, 1],
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 1, 1, 1, 1, 1, 1],
+                [1, 1, 1, 1, 1, 1, 1],
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 1]
+            ],
+            'P': [
+                [1, 1, 1, 1, 1, 1, 0],
+                [1, 1, 1, 1, 1, 1, 1],
+                [1, 0, 0, 0, 0, 1, 1],
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 1, 1],
+                [1, 1, 1, 1, 1, 1, 0],
+                [1, 1, 1, 1, 1, 0, 0],
+                [1, 0, 0, 0, 0, 0, 0],
+                [1, 0, 0, 0, 0, 0, 0],
+                [1, 0, 0, 0, 0, 0, 0]
+            ],
+            'P2': [
+                [1, 1, 1, 1, 1, 1, 0],
+                [1, 1, 1, 1, 1, 1, 1],
+                [1, 0, 0, 0, 0, 1, 1],
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 1, 1],
+                [1, 1, 1, 1, 1, 1, 0],
+                [1, 1, 1, 1, 1, 0, 0],
+                [1, 0, 0, 0, 0, 0, 0],
+                [1, 0, 0, 0, 0, 0, 0],
+                [1, 0, 0, 0, 0, 0, 0]
+            ],
+            'Y': [
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 1, 0, 0, 0, 1, 1],
+                [0, 1, 1, 0, 1, 1, 0],
+                [0, 0, 1, 1, 1, 0, 0],
+                [0, 0, 0, 1, 0, 0, 0],
+                [0, 0, 0, 1, 0, 0, 0],
+                [0, 0, 0, 1, 0, 0, 0],
+                [0, 0, 0, 1, 0, 0, 0],
+                [0, 0, 0, 1, 0, 0, 0],
+                [0, 0, 0, 1, 0, 0, 0]
+            ]
+        };
+
+        // BIRTHDAY letter patterns
+        const birthdayPatterns = {
+            'B': [
+                [1, 1, 1, 1, 1, 1, 0],
+                [1, 1, 1, 1, 1, 1, 1],
+                [1, 0, 0, 0, 0, 1, 1],
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 1, 1],
+                [1, 1, 1, 1, 1, 1, 0],
+                [1, 1, 1, 1, 1, 1, 0],
+                [1, 0, 0, 0, 0, 1, 1],
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 1, 1, 1, 1, 1, 1],
+                [1, 1, 1, 1, 1, 1, 0]
+            ],
+            'I': [
+                [1, 1, 1, 1, 1],
+                [1, 1, 1, 1, 1],
+                [0, 0, 1, 0, 0],
+                [0, 0, 1, 0, 0],
+                [0, 0, 1, 0, 0],
+                [0, 0, 1, 0, 0],
+                [0, 0, 1, 0, 0],
+                [0, 0, 1, 0, 0],
+                [0, 0, 1, 0, 0],
+                [1, 1, 1, 1, 1],
+                [1, 1, 1, 1, 1]
+            ],
+            'R': [
+                [1, 1, 1, 1, 1, 1, 0],
+                [1, 1, 1, 1, 1, 1, 1],
+                [1, 0, 0, 0, 0, 1, 1],
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 1, 1],
+                [1, 1, 1, 1, 1, 1, 0],
+                [1, 1, 1, 1, 1, 0, 0],
+                [1, 0, 0, 1, 1, 0, 0],
+                [1, 0, 0, 0, 1, 1, 0],
+                [1, 0, 0, 0, 0, 1, 1],
+                [1, 0, 0, 0, 0, 0, 1]
+            ],
+            'T': [
+                [1, 1, 1, 1, 1, 1, 1],
+                [1, 1, 1, 1, 1, 1, 1],
+                [0, 0, 0, 1, 0, 0, 0],
+                [0, 0, 0, 1, 0, 0, 0],
+                [0, 0, 0, 1, 0, 0, 0],
+                [0, 0, 0, 1, 0, 0, 0],
+                [0, 0, 0, 1, 0, 0, 0],
+                [0, 0, 0, 1, 0, 0, 0],
+                [0, 0, 0, 1, 0, 0, 0],
+                [0, 0, 0, 1, 0, 0, 0],
+                [0, 0, 0, 1, 0, 0, 0]
+            ],
+            'H2': [
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 1, 1, 1, 1, 1, 1],
+                [1, 1, 1, 1, 1, 1, 1],
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 1]
+            ],
+            'D': [
+                [1, 1, 1, 1, 1, 1, 0],
+                [1, 1, 1, 1, 1, 1, 1],
+                [1, 0, 0, 0, 0, 1, 1],
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 1, 1],
+                [1, 1, 1, 1, 1, 1, 1],
+                [1, 1, 1, 1, 1, 1, 0]
+            ],
+            'A2': [
+                [0, 0, 1, 1, 1, 0, 0],
+                [0, 1, 1, 1, 1, 1, 0],
+                [1, 1, 0, 0, 0, 1, 1],
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 1, 1, 1, 1, 1, 1],
+                [1, 1, 1, 1, 1, 1, 1],
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 1]
+            ],
+            'Y2': [
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 1, 0, 0, 0, 1, 1],
+                [0, 1, 1, 0, 1, 1, 0],
+                [0, 0, 1, 1, 1, 0, 0],
+                [0, 0, 0, 1, 0, 0, 0],
+                [0, 0, 0, 1, 0, 0, 0],
+                [0, 0, 0, 1, 0, 0, 0],
+                [0, 0, 0, 1, 0, 0, 0],
+                [0, 0, 0, 1, 0, 0, 0],
+                [0, 0, 0, 1, 0, 0, 0]
+            ]
+        };
+
+        // TO letter patterns
+        const toPatterns = {
+            'T': [
+                [1, 1, 1, 1, 1, 1, 1],
+                [1, 1, 1, 1, 1, 1, 1],
+                [0, 0, 0, 1, 0, 0, 0],
+                [0, 0, 0, 1, 0, 0, 0],
+                [0, 0, 0, 1, 0, 0, 0],
+                [0, 0, 0, 1, 0, 0, 0],
+                [0, 0, 0, 1, 0, 0, 0],
+                [0, 0, 0, 1, 0, 0, 0],
+                [0, 0, 0, 1, 0, 0, 0],
+                [0, 0, 0, 1, 0, 0, 0],
+                [0, 0, 0, 1, 0, 0, 0]
+            ],
+            'O': [
+                [0, 1, 1, 1, 1, 1, 0],
+                [1, 1, 1, 1, 1, 1, 1],
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 1, 1, 1, 1, 1, 1],
+                [0, 1, 1, 1, 1, 1, 0]
+            ]
+        };
+
+        // YOU letter patterns
+        const youPatterns = {
+            'Y': [
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 1, 0, 0, 0, 1, 1],
+                [0, 1, 1, 0, 1, 1, 0],
+                [0, 0, 1, 1, 1, 0, 0],
+                [0, 0, 0, 1, 0, 0, 0],
+                [0, 0, 0, 1, 0, 0, 0],
+                [0, 0, 0, 1, 0, 0, 0],
+                [0, 0, 0, 1, 0, 0, 0],
+                [0, 0, 0, 1, 0, 0, 0],
+                [0, 0, 0, 1, 0, 0, 0]
+            ],
+            'O': [
+                [0, 1, 1, 1, 1, 1, 0],
+                [1, 1, 1, 1, 1, 1, 1],
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 1, 1, 1, 1, 1, 1],
+                [0, 1, 1, 1, 1, 1, 0]
+            ],
+            'U': [
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 1, 1, 1, 1, 1, 1],
+                [0, 1, 1, 1, 1, 1, 0]
+            ]
+        };
+
+        // JESSY letter patterns
+        const jessyPatterns = {
+            'J': [
+                [0, 0, 0, 0, 0, 0, 1],
+                [0, 0, 0, 0, 0, 0, 1],
+                [0, 0, 0, 0, 0, 0, 1],
+                [0, 0, 0, 0, 0, 0, 1],
+                [0, 0, 0, 0, 0, 0, 1],
+                [0, 0, 0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 1, 0, 0, 0, 1, 1],
+                [0, 1, 1, 1, 1, 1, 0]
+            ],
+            'E': [
+                [1, 1, 1, 1, 1, 1, 1],
+                [1, 1, 1, 1, 1, 1, 1],
+                [1, 0, 0, 0, 0, 0, 0],
+                [1, 0, 0, 0, 0, 0, 0],
+                [1, 1, 1, 1, 1, 1, 0],
+                [1, 1, 1, 1, 1, 1, 0],
+                [1, 0, 0, 0, 0, 0, 0],
+                [1, 0, 0, 0, 0, 0, 0],
+                [1, 1, 1, 1, 1, 1, 1],
+                [1, 1, 1, 1, 1, 1, 1]
+            ],
+            'S': [
+                [0, 1, 1, 1, 1, 1, 0],
+                [1, 1, 1, 1, 1, 1, 1],
+                [1, 0, 0, 0, 0, 0, 0],
+                [1, 0, 0, 0, 0, 0, 0],
+                [0, 1, 1, 1, 1, 1, 0],
+                [0, 1, 1, 1, 1, 1, 0],
+                [0, 0, 0, 0, 0, 0, 1],
+                [0, 0, 0, 0, 0, 0, 1],
+                [1, 1, 1, 1, 1, 1, 1],
+                [0, 1, 1, 1, 1, 1, 0]
+            ],
+            'S2': [
+                [0, 1, 1, 1, 1, 1, 0],
+                [1, 1, 1, 1, 1, 1, 1],
+                [1, 0, 0, 0, 0, 0, 0],
+                [1, 0, 0, 0, 0, 0, 0],
+                [0, 1, 1, 1, 1, 1, 0],
+                [0, 1, 1, 1, 1, 1, 0],
+                [0, 0, 0, 0, 0, 0, 1],
+                [0, 0, 0, 0, 0, 0, 1],
+                [1, 1, 1, 1, 1, 1, 1],
+                [0, 1, 1, 1, 1, 1, 0]
+            ],
+            'Y': [
+                [1, 0, 0, 0, 0, 0, 1],
+                [1, 1, 0, 0, 0, 1, 1],
+                [0, 1, 1, 0, 1, 1, 0],
+                [0, 0, 1, 1, 1, 0, 0],
+                [0, 0, 0, 1, 0, 0, 0],
+                [0, 0, 0, 1, 0, 0, 0],
+                [0, 0, 0, 1, 0, 0, 0],
+                [0, 0, 0, 1, 0, 0, 0],
+                [0, 0, 0, 1, 0, 0, 0],
+                [0, 0, 0, 1, 0, 0, 0]
+            ]
+        };
+
+        // Heart pattern
+        const heartPattern = [
+            [0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0],
+            [0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0],
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+            [0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0],
+            [0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0],
+            [0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0]
+        ];
+
+        // Font-based pattern generator with dot matrix style (kept for reference but not used)
+        // Renders text to canvas and samples pixels to create dot matrix patterns
+        function textToPattern(text, fontSize = 100) {
+            // Create a temporary canvas for text rendering - use high resolution for better quality
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+
+            // Use higher resolution for better pixel sampling
+            const scale = 4; // Scale up for better quality
+            const baseFontSize = fontSize;
+            const scaledFontSize = baseFontSize * scale;
+
+            // Set canvas size - make it large enough for the text with scaling
+            tempCanvas.width = text.length * scaledFontSize * 1.3;
+            tempCanvas.height = scaledFontSize * 1.8;
+
+            // Disable image smoothing for pixelated/dot matrix effect
+            tempCtx.imageSmoothingEnabled = false;
+
+            // Clear canvas with transparent background
+            tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
+
+            // Configure text rendering - use the user's excellent matrix font
+            tempCtx.fillStyle = '#ffffff';
+            // Use Bitcount Prop Single Ink - the perfect matrix font the user chose
+            tempCtx.font = `bold ${scaledFontSize}px 'Bitcount Prop Single Ink', monospace`;
+            tempCtx.textAlign = 'center';
+            tempCtx.textBaseline = 'middle';
+
+            // Draw text in center of canvas
+            tempCtx.fillText(text, tempCanvas.width / 2, tempCanvas.height / 2);
+
+            // Sample pixels and create pattern array with dot matrix resolution
+            const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+            const data = imageData.data;
+
+            // Dot matrix style: use larger sample size for distinct dots
+            // This creates the classic LED/dot matrix display look
+            const sampleSize = Math.max(scale * 2, Math.floor(scaledFontSize / 8)); // Larger blocks for dot matrix effect
+
+            const pattern = [];
+            const width = Math.ceil(tempCanvas.width / sampleSize);
+            const height = Math.ceil(tempCanvas.height / sampleSize);
+
+            // Sample pixels with threshold for dot matrix effect
+            const threshold = 100; // Alpha threshold (0-255)
+
+            for (let y = 0; y < height; y++) {
+                const row = [];
+                for (let x = 0; x < width; x++) {
+                    // Sample center area of each block for cleaner dots
+                    let pixelCount = 0;
+                    let totalAlpha = 0;
+                    const samples = 5; // Sample 5x5 grid in center of block
+
+                    for (let sy = 0; sy < samples; sy++) {
+                        for (let sx = 0; sx < samples; sx++) {
+                            const offsetX = Math.floor((samples - 1) / 2) - sx;
+                            const offsetY = Math.floor((samples - 1) / 2) - sy;
+                            const px = Math.min(Math.max(0, x * sampleSize + sampleSize / 2 + offsetX), tempCanvas.width - 1);
+                            const py = Math.min(Math.max(0, y * sampleSize + sampleSize / 2 + offsetY), tempCanvas.height - 1);
+                            const idx = (py * tempCanvas.width + px) * 4;
+                            totalAlpha += data[idx + 3];
+                            pixelCount++;
+                        }
+                    }
+
+                    // Use average alpha to determine if dot should be on
+                    const avgAlpha = totalAlpha / pixelCount;
+                    row.push(avgAlpha > threshold ? 1 : 0);
+                }
+                pattern.push(row);
+            }
+
+            // Clean up pattern - remove empty rows/columns at edges
+            // Remove empty rows from top
+            while (pattern.length > 0 && pattern[0].every(cell => cell === 0)) {
+                pattern.shift();
+            }
+            // Remove empty rows from bottom
+            while (pattern.length > 0 && pattern[pattern.length - 1].every(cell => cell === 0)) {
+                pattern.pop();
+            }
+            // Remove empty columns from left
+            while (pattern.length > 0 && pattern[0].length > 0 && pattern.every(row => row[0] === 0)) {
+                pattern.forEach(row => row.shift());
+            }
+            // Remove empty columns from right
+            while (pattern.length > 0 && pattern[0].length > 0 && pattern.every(row => row[row.length - 1] === 0)) {
+                pattern.forEach(row => row.pop());
+            }
+
+            return pattern;
+        }
+
+        function createDotsForPattern(pattern, xOffset = 0, yOffset = 0) {
+            const dots = [];
+            // Responsive spacing based on screen width
+            let spacing = 15; // Default spacing
+            if (window.innerWidth <= 480) {
+                spacing = 8;
+            } else if (window.innerWidth <= 768) {
+                spacing = 10;
+            } else if (window.innerWidth <= 1024) {
+                spacing = 12;
+            }
+
+            const patternWidth = pattern[0].length;
+            const patternHeight = pattern.length;
+
+            for (let row = 0; row < pattern.length; row++) {
+                for (let col = 0; col < pattern[row].length; col++) {
+                    if (pattern[row][col] === 1) {
+                        const dot = document.createElement('div');
+                        dot.className = 'dot';
+
+                        const finalX = xOffset + (col - patternWidth / 2 + 0.5) * spacing;
+                        const finalY = yOffset + (row - patternHeight / 2 + 0.5) * spacing;
+
+                        // Responsive animation distances
+                        let startDistance = 1200;
+                        let endDistance = 1200;
+                        if (window.innerWidth <= 480) {
+                            startDistance = 600;
+                            endDistance = 600;
+                        } else if (window.innerWidth <= 768) {
+                            startDistance = 800;
+                            endDistance = 800;
+                        } else if (window.innerWidth <= 1024) {
+                            startDistance = 1000;
+                            endDistance = 1000;
+                        }
+
+                        const startX = finalX + (Math.random() - 0.5) * startDistance;
+                        const startY = finalY + (Math.random() - 0.5) * startDistance;
+
+                        const endX = finalX + (Math.random() - 0.5) * endDistance;
+                        const endY = finalY + (Math.random() - 0.5) * endDistance;
+
+                        dot.style.setProperty('--start-x', `${startX}px`);
+                        dot.style.setProperty('--start-y', `${startY}px`);
+                        dot.style.setProperty('--final-x', `${finalX}px`);
+                        dot.style.setProperty('--final-y', `${finalY}px`);
+                        dot.style.setProperty('--end-x', `${endX}px`);
+                        dot.style.setProperty('--end-y', `${endY}px`);
+
+                        dotsContainer.appendChild(dot);
+                        dots.push(dot);
+                    }
+                }
+            }
+            return dots;
+        }
+
+        function createDotsForNumber(number) {
+            return createDotsForPattern(numberPatterns[number]);
+        }
+
+        function createDotsForHappy() {
+            const allDots = [];
+            // Responsive letter spacing based on screen width
+            let letterSpacing = 140;
+            if (window.innerWidth <= 480) {
+                letterSpacing = 60;
+            } else if (window.innerWidth <= 768) {
+                letterSpacing = 80;
+            } else if (window.innerWidth <= 1024) {
+                letterSpacing = 110;
+            }
+            const letters = ['H', 'A', 'P', 'P2', 'Y'];
+
+            letters.forEach((letter, index) => {
+                const xOffset = (index - 2) * letterSpacing;
+                const pattern = happyPatterns[letter];
+                const dots = createDotsForPattern(pattern, xOffset, 0);
+                allDots.push(...dots);
+            });
+
+            return allDots;
+        }
+
+        function createDotsForBirthday() {
+            const allDots = [];
+            // Responsive letter spacing based on screen width
+            let letterSpacing = 110;
+            if (window.innerWidth <= 480) {
+                letterSpacing = 45;
+            } else if (window.innerWidth <= 768) {
+                letterSpacing = 60;
+            } else if (window.innerWidth <= 1024) {
+                letterSpacing = 85;
+            }
+            const letters = ['B', 'I', 'R', 'T', 'H2', 'D', 'A2', 'Y2'];
+
+            letters.forEach((letter, index) => {
+                const xOffset = (index - 3.5) * letterSpacing;
+                const pattern = birthdayPatterns[letter];
+                const dots = createDotsForPattern(pattern, xOffset, 0);
+                allDots.push(...dots);
+            });
+
+            return allDots;
+        }
+
+        function createDotsForJessy() {
+            const allDots = [];
+            // Responsive letter spacing based on screen width
+            let letterSpacing = 140;
+            if (window.innerWidth <= 480) {
+                letterSpacing = 60;
+            } else if (window.innerWidth <= 768) {
+                letterSpacing = 80;
+            } else if (window.innerWidth <= 1024) {
+                letterSpacing = 110;
+            }
+            const letters = ['J', 'E', 'S', 'S2', 'Y'];
+
+            letters.forEach((letter, index) => {
+                const xOffset = (index - 2) * letterSpacing;
+                const pattern = jessyPatterns[letter];
+                const dots = createDotsForPattern(pattern, xOffset, 0);
+                allDots.push(...dots);
+            });
+
+            return allDots;
+        }
+
+        function createDotsForHeart() {
+            return createDotsForPattern(heartPattern, 0, 0);
+        }
+
+        function animateDotsAssemble(dots) {
+            dots.forEach((dot, index) => {
+                setTimeout(() => {
+                    dot.style.animation = `assemble 1.5s ease-out forwards`;
+                }, index * 3);
+            });
+        }
+
+        function animateDotsDisassemble(dots) {
+            dots.forEach((dot, index) => {
+                setTimeout(() => {
+                    dot.style.animation = `disassemble 1.2s ease-in forwards`;
+                }, index * 2);
+            });
+        }
+
+        function showBlackScreen() {
+            blackScreen.classList.add('show');
+            createStars();
+
+            // Show sticker immediately
+            setTimeout(() => {
+                sticker.style.display = 'block';
+                // Show book after sticker appears
+                setTimeout(() => {
+                    bookContainer.classList.add('show');
+                    // Reset book state - start closed
+                    bookPageState = -1;
+                    isBookOpen = false;
+                    book.classList.add('closed');
+                    leftPageContent.innerHTML = '<div class="book-cover">To Jessy</div>';
+                    rightPageContent.innerHTML = '<div class="book-cover">To Jessy</div>';
+                    leftPage.classList.remove('flipped');
+                    rightPage.classList.remove('flipped');
+                }, 1000);
+            }, 1000);
+        }
+
+        function startCountdown() {
+            let count = 3;
+
+            function showNumber() {
+                if (count > 0) {
+                    dotsContainer.innerHTML = '';
+                    const dots = createDotsForNumber(count);
+
+                    setTimeout(() => {
+                        animateDotsAssemble(dots);
+                    }, 100);
+
+                    setTimeout(() => {
+                        animateDotsDisassemble(dots);
+                        setTimeout(() => {
+                            count--;
+                            if (count > 0) {
+                                showNumber();
+                            } else {
+                                setTimeout(showHappy, 500);
+                            }
+                        }, 1500);
+                    }, 2500);
+                }
+            }
+
+            function showHappy() {
+                dotsContainer.innerHTML = '';
+                const dots = createDotsForHappy();
+
+                setTimeout(() => {
+                    animateDotsAssemble(dots);
+                }, 100);
+
+                setTimeout(() => {
+                    animateDotsDisassemble(dots);
+                    setTimeout(showBirthday, 1500);
+                }, 4000);
+            }
+
+            function showBirthday() {
+                dotsContainer.innerHTML = '';
+                const dots = createDotsForBirthday();
+
+                setTimeout(() => {
+                    animateDotsAssemble(dots);
+                }, 100);
+
+                setTimeout(() => {
+                    animateDotsDisassemble(dots);
+                    setTimeout(showJessy, 1500);
+                }, 4000);
+            }
+
+            function showJessy() {
+                dotsContainer.innerHTML = '';
+                const dots = createDotsForJessy();
+
+                setTimeout(() => {
+                    animateDotsAssemble(dots);
+                }, 100);
+
+                setTimeout(() => {
+                    animateDotsDisassemble(dots);
+                    setTimeout(showHeart, 1500);
+                }, 4000);
+            }
+
+            function showHeart() {
+                dotsContainer.innerHTML = '';
+                const dots = createDotsForHeart();
+
+                setTimeout(() => {
+                    animateDotsAssemble(dots);
+                }, 100);
+
+                setTimeout(() => {
+                    animateDotsDisassemble(dots);
+                    setTimeout(showBlackScreen, 1500);
+                }, 4000);
+            }
+
+            showNumber();
+        }
+
+        // Function to load and display images on pages
+        function loadImageToPage(pageContent, imageNum) {
+            const img = new Image();
+            img.onload = function () {
+                pageContent.classList.add('has-image');
+                pageContent.innerHTML = `<img src="image${imageNum}.jpeg" alt="Picture ${imageNum}" class="book-page-image">`;
+            };
+            img.onerror = function () {
+                pageContent.classList.remove('has-image');
+                pageContent.innerHTML = `<div style="padding:30px;font-size:20px;color:#8b4513;">Picture ${imageNum}<br><small style="font-size:14px;">Image not found: image${imageNum}.jpeg</small></div>`;
+                console.error(`Failed to load image${imageNum}.jpeg`);
+            };
+            img.src = `image${imageNum}.jpeg`;
+        }
+
+        // Narrative texts for the sticker
+        const stickerTexts = {
+            default: "كل سنة و أنتِ طيبة يا جيسي و بتمنالك يا واد كل حاجة حلوة و سنة مليانة كل حاجة حلوة عشان أنتِ حد حلو يا واد و جميل في كل حاجة",
+            4: "مبتدي من هنا متخفيش يا جيسي مش هرفي هنا😂 بس هذه الصغيرة طلع منه شخص كبير نفس الشخص الصغير و صورة تعبر ، بس بجد احلي حاجة حد نضيف فعلا و اي حد بيحبه بجد عشان تلقائية و حد مختلف كدة يعني بجد عوض كبير لما اول يوم كلمتني يا واد وأنتِ فكرة ازاي و عرفتك فيه يا جيسي و الاختلاف كله جه ♥️",
+            5: "و هنا مع اكتر حاجة بنحب نشربها كوباية الشاي و نظبط الدماغ بنسبة كوباية الشاي بتفكرني بقعدتنا عموما احسن وقت عندي و هفضل اشكر ربنا عليها و بستني اي وقت يا واد عشان نقعد كدة مع بعض و نتكلم بقي في كذا حاجة و هفضل علي طول بستنا القعده ديه حتي لو بتحصل كل يوم عشان هي عندي بجد حاجة تاني 🫖",
+            6: "هنا مع حاجة من ضمن اكتر الحاجات الي أنتِ بتحبيها و عايزة اقولك حاجة <br>كنتي بتقوليلي عن دايرة الامان و كدة أنتِ عندي الدائرة الأولي بجد فعلا هدية كبيرة عليا ربنا باعتها ليا و هفضل اقولك كدة علي طول عشان هو ادالي حاجة كدة مختلفة فعلا و منورة طريق كدة نور و نعمة كبيرة اوي و مهما شكرتك مش هكون قولت حاجة عشان بجد تستاهلي اكتر من كدة يا جيسي و نقرف كدة في بعض يا واد أنتِ حياتي يا غالية و بجد أنا برتاح لما بشوفك يا واد بفرح ز خلاص مبقاش مبينا كسوف ولا كل ده انت حبيبي يا واد و نضمر في أي حاجة كدة و نعمل كل حاجة 😂💃",
+            7: "قربنا خلاص يا واد من افضل الصورة الي بنحب نصورة 😂 و هنفضل نصورها علي طول نجبر اي حد يتصورها بجد الصور ديه احلي حاجة ♥️😂",
+            8: "و اخيرا وليس اخرا عشان لسا كل ده هيزيد يا واد بحاجات هنعيشها بتمنالك بجد يا جيسي كل حاجة حلوة أنتِ حد جميل يا جيسي و السنة ديه الهي هتكون تميتي 23 سنة في سنة 2026 تكون حاجاتها الحلوة اكتر كدة و علي طول تبقي صورت ربنا و تبقي مليانة بركة و اتعلم منك و أنتِ بتدي للخدمة اكتر و تفضلي تدي كدة علي طول بقلبك الجميل ده يا حبيبتي الي شايل كل حاجة حلوة و مليان بيه و السنين الجاية كلها تبقي كدة و معلش و أنا هبقي فيهم عارفه انها خفيفة علي قلبك 😊 و مني كلام ده بقي أن بحبك اوي يا واد و انا علي طول فرحانه بجد بيكي و هفضل فرحانة أن عندي حد حلو كدة و هفضل هشكر كل يوم و عايزاكي تفضل حلوة كدة بكل حاجة فيكي بجد انت علي بعض كدة يا واد تركيبة كدة لوحدك 😍<br>من خالتك و اختك و  كل حاجة ليكي كدة اڤورت😂<br>خالتك فيفي يا چوچو😂♥️<br>و انتظري القادم......ترقب"
+        };
+
+        function updateStickerText(imageIndex) {
+            // Determine which text to show based on the visible images
+            // Logic: 
+            // 1-3 -> default
+            // 4 (State 2) -> Text 4
+            // 5 (State 3) -> Text 5
+
+            // Use CSS class for long text sizing
+            let text = stickerTexts.default;
+
+            if (imageIndex >= 8) text = stickerTexts[8];
+            else if (imageIndex >= 7) text = stickerTexts[7];
+            else if (imageIndex >= 6) text = stickerTexts[6];
+            else if (imageIndex >= 5) text = stickerTexts[5];
+            else if (imageIndex >= 4) text = stickerTexts[4];
+
+            // Reset scaling classes
+            sticker.classList.remove('long-text', 'extra-long-text');
+
+            // Apply scaling classes based on length
+            if (text.length > 500) {
+                sticker.classList.add('extra-long-text');
+            } else if (text.length > 250) {
+                sticker.classList.add('long-text');
+            }
+
+            // Fade out, change text, fade in
+            sticker.style.opacity = '0';
+            sticker.style.transition = 'opacity 0.5s ease';
+
+            setTimeout(() => {
+                sticker.innerHTML = text;
+                // Font size handled by CSS class .long-text
+                sticker.style.opacity = '1';
+            }, 500);
+        }
+
+        // Initialize with default text
+        sticker.innerHTML = stickerTexts.default;
+
+        // Function to update pages - images only on left, right stays blank
+        function updatePages(leftImgNum, rightImgNum) {
+            // Load image only on left page
+            loadImageToPage(leftPageContent, leftImgNum);
+
+            // Keep right page blank (show cover text)
+            rightPageContent.classList.remove('has-image');
+            rightPageContent.innerHTML = '<div class="book-cover">To Jessy</div>';
+
+            // Update sticker based on the left page image (progressive)
+            updateStickerText(leftImgNum);
+        }
+
+        // Book page turning functionality
+        function turnPageForward() {
+            // If already closed and at the end, open the book (reset to first image)
+            if (bookPageState === -1) {
+                isBookOpen = true;
+                book.classList.remove('closed');
+                bookPageState = 1; // Start with image 1
+                leftPage.classList.add('flipped');
+                rightPage.classList.add('flipped');
+                setTimeout(() => {
+                    updatePages(1, 0); // Only left page gets image, right stays blank
+                }, 400);
+                return;
+            }
+
+            // If on the last image (8), close the book
+            if (bookPageState === 8) {
+                isBookOpen = false;
+                book.classList.add('closed');
+                setTimeout(() => {
+                    leftPage.classList.remove('flipped');
+                    rightPage.classList.remove('flipped');
+                    leftPageContent.classList.remove('has-image');
+                    leftPageContent.innerHTML = '<div class="book-cover">To Jessy</div>';
+                    rightPageContent.classList.remove('has-image');
+                    rightPageContent.innerHTML = '<div class="book-cover">To Jessy</div>';
+                }, 400);
+                bookPageState = -1;
+                return;
+            }
+
+            // Book is open, go forward - images only on left page
+            if (bookPageState >= 1 && bookPageState < 8) { // Changed to 8 since we have 8 images
+                bookPageState++;
+                const leftImageNum = bookPageState; // Direct mapping: state 1 = image 1, state 2 = image 2, etc.
+
+                // Always flip left page to show next image, right stays blank
+                leftPage.classList.remove('flipped');
+                setTimeout(() => {
+                    leftPage.classList.add('flipped');
+                    setTimeout(() => {
+                        updatePages(leftImageNum, 0); // Only left page gets image, right stays blank
+                    }, 400);
+                }, 50);
+            }
+        }
+
+        function turnPageBackward() {
+            if (!isBookOpen || bookPageState <= 1) {
+                return; // Can't go back from first image or if book is closed
+            }
+
+            bookPageState--;
+            const leftImageNum = bookPageState; // Direct mapping
+
+            // Always flip left page to show previous image, right stays blank
+            leftPage.classList.remove('flipped');
+            setTimeout(() => {
+                leftPage.classList.add('flipped');
+                setTimeout(() => {
+                    updatePages(leftImageNum, 0); // Only left page gets image, right stays blank
+                }, 400);
+            }, 50);
+        }
+
+        // Add click handlers to book pages - left page goes back, right page goes forward
+        leftPage.addEventListener('click', turnPageBackward);
+        rightPage.addEventListener('click', turnPageForward);
+
+        // Initialize matrix background immediately
+        initMatrix();
+
+        // Start immediately - show Jessy Day screen right away
+        // Use DOMContentLoaded for faster initial display
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', showJessyDay);
+        } else {
+            // DOM is already loaded
+            showJessyDay();
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', function () {
+            scaleStage(); // Update scale
+            checkOrientationAndStart(); // Check orientation on resize
+            // Matrix canvas is fixed size inside stage, no need to resize canvas.width/height
+        });
+
+        // Handle orientation change for mobile devices
+        window.addEventListener('orientationchange', function () {
+            setTimeout(function () {
+                scaleStage();
+                checkOrientationAndStart();
+            }, 100);
+        });
+    </script>
+</body>
+
+</html>
